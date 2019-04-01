@@ -1,0 +1,18 @@
+<?php
+
+namespace DummyNamespace;
+
+use StackBoom\ApiResponder\Responder as BasicResponder;
+
+/**
+ * Class DummyClass
+ * @package DummyNamespace
+{{phpDocFields}}
+ * Generate by : Magic Generator
+ * Date: {{Date}}
+ * Time: {{Time}}
+ */
+class DummyClass extends BasicResponder
+{
+    //
+}

@@ -1,0 +1,44 @@
+<?php
+
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Migrations\Migration;
+
+class CreatePermissionTables extends Migration
+{
+    /**
+     * Run the migrations.
+     *
+     * @return void
+     */
+    public function up()
+    {
+        $table_name = config('api_responder.table_name');
+
+        Schema::create($table_name, function (Blueprint $table) {
+            $table->increments('id');
+            $table->string('name');
+            $table->string('message');
+            $table->unsignedSmallInteger('code')->nullable();
+            $table->string('lang')->nullable();
+            $table->string('param')->nullable();
+            $table->string('comment')->nullable();
+            $table->string('help')->nullable();
+
+            $table->softDeletes();
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     *
+     * @return void
+     */
+    public function down()
+    {
+        $table_name = config('api_responder.table_name');
+
+        Schema::drop($table_name);
+    }
+}
