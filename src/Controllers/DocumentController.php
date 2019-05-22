@@ -12,13 +12,13 @@ namespace StackBoom\ApiResponder\Controllers;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Request;
 
-class DocController extends Controller
+class DocumentController extends Controller
 {
-    public function code(string $code=null){
-        if($code=$code??Request::input('code',null)){
-            if(is_numeric()){
-                
-            }
-        }
+    public function reference(string $lang=null){
+
+    }
+
+    public function help(string $msg,string $lang=null){
+
     }
 }

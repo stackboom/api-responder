@@ -7,9 +7,9 @@
  */
 return [
 
-    'cache'=>false,
+    'table_name'=>'responder_languages',
 
-    'table_name'=>'api_responder',
+    'locale'=>null, // (boolean) to disable, set null to use config('app.locale')
 
-    'data_first'=>true,
+    'strict'=>null, // boolean
 ];

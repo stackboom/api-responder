@@ -67,14 +67,19 @@ class ResponderGenerateCommand extends GeneratorCommand
     protected function replaceFields(&$stub){
         $docContent = '';
 
-        $responders = ResponderModel::all();
+        /**
+         * @var ResponderModel[] $responders
+         */
+        $responders = ResponderModel::all()->unique('name');
 
         foreach ($responders as $responder){
             $docContent .= " * @method static static {$responder->camel_name}\n";
         }
 
+        $this->getOutput()->success($responders->count());
+
         $stub = str_replace("{{phpDocFields}}\n", $docContent, $stub,$count);
-        dump($count);
+
         return $this;
     }
 

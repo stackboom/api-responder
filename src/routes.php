@@ -8,9 +8,14 @@
 
 use Illuminate\Support\Facades\Route;
 
-if (env('ENABLE_ERRCODE_DOC', false)) {
+if (env('ENABLE_RESPONDER_REFERENCE_DOC', false)) {
     /**
-     * @see \StackBoom\ApiResponder\Controllers\DocController::code()
+     *
+     * @see \StackBoom\ApiResponder\Controllers\DocumentController::reference()
      */
-    Route::get('/doc/errcode/{code?}','\StackBoom\ErrorCode\Controllers\DocController@code');
+    Route::get('/doc/responder_ref/{lang}','\StackBoom\ErrorCode\Controllers\DocumentController@reference');
+}
+
+if (env('ENABLE_RESPONDER_HELP_DOC', false)) {
+    Route::get('/help/{msg}/{lang?}', '\StackBoom\ErrorCode\Controllers\DocumentController@help');
 }

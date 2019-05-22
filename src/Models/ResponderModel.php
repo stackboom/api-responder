@@ -11,16 +11,17 @@ namespace StackBoom\ApiResponder\Models;
 
 use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
 /**
  * Class ResponderModel
- * @property string camel_name
+ * @property-read string camel_name
  * @property string name
  * @property string message
  * @property integer code
  * @property string lang
- * @property string param
+ * @property array param
  * @property string help
  * @package StackBoom\ApiResponder
  * @mixin \Eloquent
@@ -29,8 +30,20 @@ use Illuminate\Support\Str;
  * Time: 11:09
  */
 
-class ResponderModel extends Model implements Responsable
+class ResponderModel extends Model
 {
+    use SoftDeletes;
+
+    /**
+     * @param string $message
+     * @param array|string $lang
+     * @return Collection
+     */
+    public static function fetch(string $name, $lang){
+        if(is_string($lang))$lang=[$lang];
+        return static::where('name',$name)->whereIn('lang',$lang)->get();
+    }
+
     /**
      * @return string
      */
@@ -43,17 +56,6 @@ class ResponderModel extends Model implements Responsable
     {
         parent::__construct($attributes);
 
-        $this->setTable(config('api_responder.table_name','api_responder'));
-    }
-
-    /**
-     * Create an HTTP response that represents the object.
-     *
-     * @param  \Illuminate\Http\Request $request
-     * @return \Illuminate\Http\Response
-     */
-    public function toResponse($request)
-    {
-        // TODO: Implement toResponse() method.
+        $this->setTable(config('api_responder.table_name','responder_languages'));
     }
 }

@@ -12,17 +12,21 @@ use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Support\Responsable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Response;
 use Illuminate\Support\Str;
 use StackBoom\ApiResponder\Models\ResponderModel;
+use StringTemplate\Engine;
 
+/**
+ * Class Responder
+ * @property $name
+ * @property $code
+ * @property $message
+ * @property $data
+ * @property $body
+ * @package StackBoom\ApiResponder
+ */
 class Responder implements Responsable
 {
-
-    /**
-     * @var array|Arrayable $data
-     */
-    protected $data;
 
     /**
      * @var int $code
@@ -30,23 +34,87 @@ class Responder implements Responsable
     protected $code;
 
     /**
-     * @var string|array|Arrayable $message
+     * @var string $message
      */
     protected $message;
 
-    protected static $presets=[
-        'Success'=>[
-            'code'=>200,
-            'message'=>'操作成功.'
-        ],
-        'Failed'=>[
-            'code'=>400,
-            'message'=>'操作失败！'
-        ],
-    ];
+    /**
+     * @var array|Arrayable $data
+     */
+    protected $data;
 
     /**
-     * @return array|Arrayable
+     * @var array|$append
+     */
+    protected $append;
+
+    /**
+     * @var bool|array $locale
+     */
+    protected $locale;
+
+    /**
+     * @var ResponderModel[]|Collection $languages
+     */
+    protected $languages;
+
+
+    /**
+     * @return mixed
+     */
+    public function getName()
+    {
+        return Str::snake($this->name);
+    }
+
+    /**
+     * @param mixed $name
+     * @return Responder
+     */
+    public function setName($name)
+    {
+        $this->name = $name;
+        return $this;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getCode()
+    {
+        return $this->code;
+    }
+
+    /**
+     * @param mixed $code
+     * @return Responder
+     */
+    public function setCode($code)
+    {
+        $this->code = $code;
+        return $this;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getMessage()
+    {
+        return $this->message;
+    }
+
+    /**
+     * @param mixed $message
+     * @return Responder
+     */
+    public function setMessage($message)
+    {
+        $this->message = $message;
+        return $this;
+    }
+
+    /**
+     * @return mixed
      */
     public function getData()
     {
@@ -54,7 +122,7 @@ class Responder implements Responsable
     }
 
     /**
-     * @param array|Arrayable $data
+     * @param mixed $data
      * @return Responder
      */
     public function setData($data)
@@ -64,100 +132,135 @@ class Responder implements Responsable
     }
 
     /**
-     * @return int
+     * @return mixed
      */
-    public function getCode(): int
+    public function getBody()
     {
-        return $this->code;
+        return $this->body;
     }
 
     /**
-     * @param int $code
+     * @param mixed $body
      * @return Responder
      */
-    public function setCode(int $code): Responder
+    public function setBody($body)
     {
-        $this->code = $code;
+        $this->body = $body;
         return $this;
     }
 
-    /**
-     * @return array|Arrayable|string
-     */
-    public function getMessage()
-    {
-        return $this->message;
-    }
 
     /**
-     * @param array|Arrayable|string $message
-     * @return Responder
+     * @param $request
+     * @return array|bool
      */
-    public function setMessage($message)
+    public function getLocale($request)
     {
-        $this->message = $message;
-        return $this;
+        return $this->locale===false?false:$this->locale??array_values(array_map('strtolower',array_unique(array_filter([
+            $request?$request->getLocale():false,
+            config('api_responder.locale'),
+            config('app.locale'),
+            config('app.fallback_locale')
+        ]))));
     }
 
-    public function __construct($msg,$data=null,$message=null,$code=200)
+    /**
+     * @param $locale
+     * @return static
+     */
+    public function setLocale($locale)
     {
-        $this->msg = $msg;
-        $this->message = $message;
-        $this->code = $code;
-        $this->data = $data;
-    }
-
-    public static function __callStatic($name, $arguments)
-    {
-        if(array_key_exists($name,static::$presets)){
-
-            if(isset($arguments[0]) && is_string($arguments[0])){
-                $message = $arguments[0];
-                $data = $arguments[1]??null;
-            }else{
-                $data = $arguments[0]??null;
-                $message = static::$presets['message']??$name;
-            }
-
-            $code = static::$presets[$name]['code']??200;
-            return new static($name,$data,$message,$code);
-
+        if(is_string($locale) && is_array($this->locale)){
+            //TODO:strict
+            if(!in_array($locale,$this->locale))
+                array_push($this->locale,$locale);
         }else{
-            $msg = Str::snake($name);
-            if(($responder = ResponderModel::where('name',$msg)->get()) instanceof Collection){
-                return new static($responder);
-            }else{
-                throw new Exception("response code \"{$msg}\" not found;");
-            }
+            $this->locale = $locale;
         }
+        return $this;
+    }
+
+    public function getDefaultCode(){
+        return 200;
     }
 
     /**
-     * toResponse
+     * Responder constructor.
+     * @param $name // name
+     * @param array $data
+     * @param mixed ...$param
+     */
+    public function __construct($name,$data=[],$body=[])
+    {
+        $this->name = $name;
+        $this->data = $data;
+        $this->body = $body;
+        $this->locale = config('api_responder.locale');
+    }
+
+    /**
+     * @param $name
+     * @param $data
+     * @return static
+     */
+    public static function __callStatic($name,$data)
+    {
+        return new static($name,...$data);
+    }
+
+    /**
      * @param \Illuminate\Http\Request $request
-     * @return JsonResponse|Response
-     * User: LunaticFish
-     * Date: 2019/3/29
-     * Time: 14:34
+     * @return JsonResponse|\Illuminate\Http\Response
      */
     public function toResponse($request)
     {
-        return JsonResponse::create([
-            'msg'=>$this->msg,
-            'code'=>$this->code,
-            'message'=>$this->parseMessage($request),
-        ]);
-    }
+        $locale = $this->getLocale($request);
 
-    /**
-     * parseMessage
-     * @param \Illuminate\Http\Request $request
-     * User: LunaticFish
-     * Date: 2019/3/29
-     * Time: 14:35
-     */
-    public function parseMessage($request)
-    {
-        $lang = $request->getLanguages();
+        if($locale===false)
+            return JsonResponse::create(array_merge(array_filter([
+                'msg'=>$this->getName(),
+                'code'=>$this->getCode()??$this->getDefaultCode(),
+            ]),[
+                'data'=>$this->getData()
+            ],
+                $this->getBody()
+            ));
+
+
+        $this->languages = ResponderModel::fetch($this->name,$locale);
+
+        if($this->languages instanceof Collection && $this->languages->isNotEmpty()){
+            /**
+             * @var ResponderModel $responder
+             */
+            $responder = $this->languages->sort(function($a,$b)use($locale){
+                $offset_a = array_search($a->lang,$locale);
+                $offset_b = array_search($b->lang,$locale);
+
+                if($offset_a === $offset_b)
+                    return 0;
+
+                if($offset_a===false || $offset_b===false){
+                    return $offset_a===false?1:-1;
+                }
+                return $offset_a>$offset_b?1:-1;
+            })->first();
+
+            $data = $this->getData();
+            $message = (new Engine())->render($responder->message,$data);
+
+            return JsonResponse::create(array_merge(array_filter([
+                'msg'=>$this->getName(),
+                'message'=>$this->getMessage()??$message,
+                'code'=>$this->getCode()??$responder->code??$this->getDefaultCode(),
+            ]),[
+                'data'=>$data
+            ],
+                $this->getBody()
+            ));
+        }else{
+            //TODO:strict
+        }
+
     }
 }
