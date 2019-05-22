@@ -13,9 +13,9 @@ if (env('ENABLE_RESPONDER_REFERENCE_DOC', false)) {
      *
      * @see \StackBoom\ApiResponder\Controllers\DocumentController::reference()
      */
-    Route::get('/doc/responder_ref/{lang}','\StackBoom\ErrorCode\Controllers\DocumentController@reference');
+    Route::get('/doc/responder_ref/{lang?}','\StackBoom\ApiResponder\Controllers\DocumentController@reference');
 }
 
 if (env('ENABLE_RESPONDER_HELP_DOC', false)) {
-    Route::get('/help/{msg}/{lang?}', '\StackBoom\ErrorCode\Controllers\DocumentController@help');
+    Route::get('/help/{msg}/{lang?}', '\StackBoom\ApiResponder\Controllers\DocumentController@help');
 }

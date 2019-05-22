@@ -22,7 +22,9 @@ class ApiResponderServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/../config/api_responder.php' => config_path('api_responder.php'),
         ], 'config');
+
         $this->loadRoutesFrom(__DIR__ . '/routes.php');
+        $this->loadViewsFrom(__DIR__.'/views','api_responder');
     }
 
     public function register()
