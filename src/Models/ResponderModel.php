@@ -34,6 +34,16 @@ class ResponderModel extends Model
 {
     use SoftDeletes;
 
+    protected $fillable = [
+        'name',
+        'lang',
+        'message',
+        'code',
+        'param',
+        'comment',
+        'help',
+    ];
+
     /**
      * @param string $message
      * @param array|string $lang
@@ -41,7 +51,7 @@ class ResponderModel extends Model
      */
     public static function fetch(string $name, $lang){
         if(is_string($lang))$lang=[$lang];
-        return static::where('name',$name)->whereIn('lang',$lang)->get();
+        return static::withoutTrashed()->where('name',$name)->whereIn('lang',$lang)->get();
     }
 
     /**

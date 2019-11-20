@@ -73,7 +73,7 @@ class ResponderGenerateCommand extends GeneratorCommand
         $responders = ResponderModel::all()->unique('name');
 
         foreach ($responders as $responder){
-            $docContent .= " * @method static static {$responder->camel_name}\n";
+            $docContent .= " * @method static static {$responder->camel_name}(\$data = [], \$body = []) {$responder->message}\n";
         }
 
         $this->getOutput()->success($responders->count());

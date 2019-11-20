@@ -151,14 +151,22 @@ class Responder implements Responsable
 
 
     /**
-     * @param $request
+     * @param \Illuminate\Http\Request|null $request
      * @return array|bool
      */
-    public function getLocale($request)
+    public function getLocale($request=null)
     {
-        return $this->locale===false?false:$this->locale??array_values(array_map('strtolower',array_unique(array_filter([
-            $request?$request->getLocale():false,
+        return $this->locale;
+    }
+
+    /**
+     * @param \Illuminate\Http\Request|null $request
+     * @return array
+     */
+    public function getLocaleList($request){
+        return array_values(array_map('strtolower',array_unique(array_filter([
             config('api_responder.locale'),
+            $request?$request->getLocale():false,
             config('app.locale'),
             config('app.fallback_locale')
         ]))));
@@ -170,13 +178,14 @@ class Responder implements Responsable
      */
     public function setLocale($locale)
     {
-        if(is_string($locale) && is_array($this->locale)){
-            //TODO:strict
-            if(!in_array($locale,$this->locale))
-                array_push($this->locale,$locale);
-        }else{
-            $this->locale = $locale;
-        }
+//        if(is_string($locale) && is_array($this->locale)){
+//            //TODO:strict
+//            if(!in_array($locale,$this->locale))
+//                array_push($this->locale,$locale);
+//        }else{
+//            $this->locale = $locale;
+//        }
+        $this->locale = $locale;
         return $this;
     }
 
@@ -193,8 +202,8 @@ class Responder implements Responsable
     public function __construct($name,$data=[],$body=[])
     {
         $this->name = $name;
-        $this->data = $data;
-        $this->body = $body;
+        $this->data = $data??[];
+        $this->body = $body??[];
         $this->locale = config('api_responder.locale');
     }
 
@@ -205,7 +214,7 @@ class Responder implements Responsable
      */
     public static function __callStatic($name,$data)
     {
-        return new static($name,...$data);
+        return new static(Str::snake($name),...$data);
     }
 
     /**
@@ -215,7 +224,6 @@ class Responder implements Responsable
     public function toResponse($request)
     {
         $locale = $this->getLocale($request);
-
         if($locale===false)
             return JsonResponse::create(array_merge(array_filter([
                 'msg'=>$this->getName(),
@@ -226,16 +234,17 @@ class Responder implements Responsable
                 $this->getBody()
             ));
 
+        $locales = $this->getLocaleList($request);
 
-        $this->languages = ResponderModel::fetch($this->name,$locale);
+        $this->languages = ResponderModel::fetch($this->name,$locales);
 
         if($this->languages instanceof Collection && $this->languages->isNotEmpty()){
             /**
              * @var ResponderModel $responder
              */
-            $responder = $this->languages->sort(function($a,$b)use($locale){
-                $offset_a = array_search($a->lang,$locale);
-                $offset_b = array_search($b->lang,$locale);
+            $responder = $this->languages->sort(function($a,$b)use($locales){
+                $offset_a = array_search($a->lang,$locales);
+                $offset_b = array_search($b->lang,$locales);
 
                 if($offset_a === $offset_b)
                     return 0;
@@ -248,10 +257,10 @@ class Responder implements Responsable
 
             $data = $this->getData();
             $message = (new Engine())->render($responder->message,$data);
-
+            
             return JsonResponse::create(array_merge(array_filter([
                 'msg'=>$this->getName(),
-                'message'=>$this->getMessage()??$message,
+                'message'=>$message,
                 'code'=>$this->getCode()??$responder->code??$this->getDefaultCode(),
             ]),[
                 'data'=>$data
@@ -259,8 +268,36 @@ class Responder implements Responsable
                 $this->getBody()
             ));
         }else{
-            //TODO:strict
+            if($this->isStrict()){
+                throw new Exception('responder name '.$this->getName().' not defined');
+            }else{
+                ResponderModel::create([
+                    'name'=>$this->getName(),
+                    'code'=>$this->getCode()??$this->getDefaultCode(),
+                    'lang'=>$locale??$locales[0],
+                    'message'=>$this->getMessage()??$this->getName(),
+                    'comment'=>'TODO::edit this responder'
+                ]);
+                $message = (new Engine())->render($this->getMessage(),$this->getData());
+                $response =  JsonResponse::create(array_merge(array_filter([
+                    'msg'=>$this->getName(),
+                    'message'=>$message,
+                    'code'=>$this->getCode()??$this->getDefaultCode(),
+                ]),[
+                    'data'=>$this->getData()
+                ],
+                    $this->getBody()
+                ));
+                if(!$response->hasEncodingOption(JSON_UNESCAPED_UNICODE)){
+                    $response->setEncodingOptions(JSON_UNESCAPED_UNICODE);
+                }
+                return $response;
+            }
         }
 
+    }
+
+    public function isStrict(){
+        return config('api_responder.strict')??!config('app.debug',false);
     }
 }
